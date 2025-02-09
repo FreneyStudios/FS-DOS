@@ -1,0 +1,385 @@
+
+Legend:
+
+[ ] = not done yet
+
+[X] = done yet
+
+? [ ] = optional 
+
+! [ ] = Bugfix or important
+
+<name> = viewer/3rd party suggestion/attribution
+
+==================================================================================
+Shorter Term / Next Up
+==================================================================================
+? [ ] Move printing elf info into another function in elf.h, similar to readelf? 
+    or move into a command in kernel.c for 'readelf' or similar?
+
+[ ] Change command_functions array to take in the argv[] array parm, not 
+    just 1 char* parm for path. That way each function for a command can 
+    interpret flags, multiple paths, etc. and act more like actual shell 
+    commands or program calls.
+    [X] bool (*command_functions[])(char **)    // char** for *argv[]
+    [X] if (!command_functions[i](argv)) {
+    [X] fs_make_dir(char *argv[]) // or (char **argv)
+    [X] fs_change_dir(char *argv[]) // or (char **argv)
+    [ ] ...
+
+[ ] Make create file command e.g. "touch" or similar. 
+    Alternatively, could have "read" and "write" commands that function 
+    similarly to "cat"/"type" and "echo". That may make more sense.
+    Could also go with "mkfile" to have consistency with "mkdir" for directories.
+
+[ ]<Paul Wratt> Add "multi-command" lines for the shell with semicolons (or other separators?).
+    This could open up '&&' and '||' or other ways of chaining commands together as well.
+    Ex: "chdir folderA; dir" would execute "chdir folderA" and then "dir",
+    changing the current dir to folderA and showing the contents of folderA, 
+    without needing 2 separate commands and enter keypresses.
+
+[ ] Add PATH "environment variable" or equivalent. Probably semicolon 
+    delimited? 
+    [ ] Read all directories in PATH or equivalent to check for input 
+        command/program, in each one, stop if found input command/program, 
+        and execute it.
+
+! [ ] Fix/refactor editor, using new system calls for open(), read(), write(), etc. for files, 
+    printf() for printing, and redo/simplify in general. It will NOT use the old file table system.
+	Could also try to change it to be more of a modal editor, line oriented editor, use terminal
+    escape sequences for cursor/etc., and/or add an editor state struct to keep track of cursor X/Y
+    and other things.
+
+    [ ] Alternatively, might redo the whole thing and make it more of an 'ed' like editor, 
+        i.e. line oriented. The hex editor could be remade into its own separate "monitor" program.
+
+    [ ]<Paul Wratt> If going the "ed" route, have it function similarly to the calculator for input,
+        where it allows interactive and non-interactive use (e.g. "sed") for scripting.
+
+        Could have it use interactive input (keystrokes from user) if given no input args,
+        execute string input args as scripts (argument would start and end with a double quote "),
+        and execute other input args as file paths, where the files contain text data that is ran
+        as a script like the string arguments. Can iterate through all given input arguments and
+        run each one in order, then exit. If no input args then run an interactive session.
+
+[ ] Refactor makefile to use posix compliance, suffixes, actual inference rules, and prerequisites for recipes. Use those for all source files and
+	object files, to make the final executables/bin files. This way, other than building the final image, building and compilation can be faster 
+	and incremental, no reason to rebuild everything every time. It should also (hopefully) be less code and with wider portability due to posix.
+	Should be able to use directories and have suffix/inference rules work fine, but only if both suffix ruled files are in the same directory.
+	It may also be worse from included header files, and having to use those in the prerequisites.
+
+[ ] Change printf() to allow fixed width and left/right justification
+	ex:
+	%-10d = 10 digit integer, left justified, padded with blanks on the right to 10 width
+	%10d = 10 digit integer, right justified, padded with blanks on the left to 10 width
+	[ ] Use new printf width/justifying for 'dir'/'ls' command to line up output better
+	[ ] Use new printf for 'prtmemmap' command to line up output better
+
+[ ] Make a 'chgprompt' or similar command, to set the prompt from user input, to change from the default '>'
+
+? [ ] Add parent inode id as a new field to inode_t struct, to simplify setting/getting parent directories for files and 
+    other fs logic.
+	[ ] Remove "size_sectors" field to make room, as it is redundant with size_bytes, and can be computed where needed
+	[ ] Remove adding explicit "." and ".." entries to directories, they can be implicit for resolving paths, but no need to 
+		take up space in dir_entry's in the disk blocks for directories. (credit to plan9 for inspiration)
+		With the parent inode id in the file's inode, there would be no need for an explicit ".." dir_entry, and "." refers to 
+		the containing directory itself.
+	[ ] Fix/refactor places where "." and ".." are used
+		[ ] fs_impl.h
+		[ ] make_disk.c
+		[ ] other places...?
+
+[ ] Add screen scrollback, and save screen lines or pixels somewhere, either in a file (easier?) or buffer in memory (harder?).
+	Probably add to terminal.h, in terminal_write()?
+	[ ] Save user's current screen line position, and X/Y row/col? To later retrieve current screen lines and offset from text saved 
+		when scrolling. Every enter key press and terminal write will increment the user line number by 1, up to the max number of history
+		lines. Or can roll over to 0 or 1, if that works better.
+	[ ] Keep a certain number of lines of history/scrollback, e.g. 10,000 lines.
+	[ ] Each line written to screen from the terminal, also save in the 10,000 lines array somewhere. User input past line 10,000 will
+		overwrite previous history lines, by moving the history lines up by 1, so that line 1-10,000 is the new line 0-9999, similar to
+		current screen/text scrolling on newlines.
+		[ ] Use a ring buffer or similar for the history buffer? https://en.wikipedia.org/wiki/Circular_buffer
+			This way adding past the max line/end of buffer would wrap around and overwrite the previous lines starting at the 
+			beginning again. Reading before the start would wrap back to the end and go 
+			backwards again. Would need 2 pointers to starting/ending lines to work correctly?
+	[ ] When scrolling (pageup/pagedown keys?), move screen height lines up/down, keeping cursor in same X/Y position. Or can move cursor 
+		to middle of screen or somewhere better. Text will print on the screen from the array of history lines, for a slice/range of
+		the current size of the screen, as a sort of moving window. 
+		If the screen is 50 lines in height for the current font, then scrolling up can show lines [current_line - 49 .. current_line],
+		or can go up 50 lines and not show current line. A next scroll up would show [current_line - 99 .. current_line - 49], or 
+		-100 .. -50, and so on. Scrolling down would decrease the range ends by 50, instead of increase.
+	[ ] On input/typing, move screen back down to where the prompt and cursor are currently. As in, scroll back down to starting position 
+		and lines before scrolling.
+	[ ] Don't allow scrolling down past end of lines, or up before start of lines. Why attempt to show data that doesn't exist? 
+		Or can show blank screen if wanted for some reason? May change if going with ring buffer approach above.
+
+[ ] "Help" command - print string(s) to list currently available commands and their descriptions
+	[ ] Read command/program help info from standard files e.g. "/sys/doc/commands/cmdA/help.txt" ?
+    [ ] Can alias a single '?' to be the same command as 'help'
+
+[ ] In addition to or as an alternative to the 'help' command, a "man" command or other documentation
+    retriever ("docs?"). 
+    Can be as simple as reading file(s) under 
+    /system/docs/further/path/to/thing/which/has/man/pages/documentation.txt, or similar.
+
+[ ] Delete directory function & rmdir command
+	[ ] Call fs_delete_file() for all files found in the input directory. 
+        Check inode.type == FILETYPE_FILE?
+    [ ] If type == FILETYPE_DIR, instead call this function recursively, or use other logic.
+        This would be depth first search, may have to be careful with stack usage for many nested 
+        directories.
+    [ ] After deleting all files in directory, clear out last data block and data bitmap bit   
+        for this directory's "." and ".." dir entries.
+
+    Then do similar logic as in fs_delete_file():
+    [ ] Clear inode in inode blocks
+    [ ] Clear inode bit in inode bitmap
+    [ ] Clear dir_entry in parent dir's data blocks, update parent dir's inode for new size,
+        and update parent dir's inode on disk.
+    [ ] Update root dir and/or current dir, if parent dir is one of those two.
+
+    [ ] ...
+
+[ ] Change 'type' command to 'read', as that might make more (intuitive?) sense.
+
+[ ] 'write' command, to go with 'read' command above, similar to linux "echo" but without writing 
+    the default newline after.
+    [ ] In lieu of pipes, the default case can be to overwrite file data, or create the file if
+        it doesn't exist.
+        Can use "open(<filepath>, O_CREAT | O_WRONLY)" ?
+
+    [ ] Optional flag -a --append, to instead write at the end of the current file data.
+        Can use "open(<filepath>, O_WRONLY | O_APPEND)" ?
+
+[ ] Move file/dir command and function. Should not need to mess with file data at all, only the
+    parent folder's dir_entry for the file.
+    e.g. "mv folderA/fileB.txt folderC/fileD.txt"
+    [ ] mv/mov/move can take in a 'before' path and 'after' path
+        [ ] If after path ends with an existing directory, move file with same name to that 
+            directory. 
+            If after path ends in non-existing file name, move file to that new name in
+            that directory.
+
+    [ ] Get dir_entry from before path parent_inode's data blocks.
+	[ ] Delete dir_entry from before path parent directory's data blocks.
+        [ ] Update parent inode's size and data blocks (and update inode on disk), similarly to 
+            fs_delete_file.
+	[ ] Add dir_entry to after path parent directory's data blocks.
+        [ ] Update parent inode's size and data blocks (and update inode on disk).
+
+! [ ] Fix 'chgfont' command, by either renaming font files at runtime, working with any files, not 
+    just .fnt, or by changing makefile/make_disk.c to use '.fnt' as the font name extension, and 
+    not '.bin'.
+
+[ ] Command similar to linux 'df' to print disk block or overall filesystem information.
+    Kind of like the current 'prtmemmap' command.
+
+[ ] Hex "monitor" program? Command line/interactive mode. This could be a replacement for the hex mode
+    of the editor, or as an additional similar feature. It would be started from a "hexmon" or "monitor" command 
+    or similar, and allow typing in an address or range of addresses to view contents of memory. Can have the 
+    default view be similar to 'xxd' in that it shows 8/16 bytes per line in hex and ascii (unicode?) on the 
+    right. Can also allow typing in values to use, but this would be up to the user to know what/why they're
+    typing in e.g. strings somewhere for text output, or x86 machine code for a program.
+    >: 0xF000:0xFFFF\r   for input to view memory contents of 0xF000-0xFFFF
+    >: 0xF000 i 123      to input value 123 into memory address 0xF000
+    >: 0xF000 i 0xFF 0x23 0x11 ...  to input multiple values in each byte starting at address 0xF000
+    ... more examples here ...
+    (Credit to Ben Eater's video on running Apple I software on the 6502 breadboard computer for inspiration)
+
+[ ]<Paul Wratt>Extend the current hex portion of the editor to allow disk sectors or blocks and 
+        memory chunks.
+
+        I would probably move the hex functionality out into it's own utility program, and be similar
+        to 'xxd', but interactive. It would allow viewing and changing bytes in memory or 
+        on disk (on disk would update/save the new contents to those disk sectors/blocks when done).
+
+ Other needed filesystem functions, or other things here...
+
+
+==================================================================================
+Longer term
+==================================================================================
+[ ] README.md: update screenshots & wording/descriptions in each part to be simpler/more succinct and up to date
+
+[ ] makefile: 
+	[ ] add -Wpedantic to CFLAGS, fix all warnings/errors as possible. Also add -Werror to hate life.
+	[ ] Research implicit rules, inference rules, and .SUFFIXES to try and simplify converting .c to .o and .bin files, and .asm to .bin files,
+		if possible.
+
+[ ] In bootsector or 2ndstage, find any ATA hard drives installed. If this OS is on a usb or otherwise not on an ATA drive,
+    ask user to choose which drive to install to. Use bios interrupts to read the OS sectors from USB, and write to 
+    start of chosen drive. Then reboot or shutdown so user can boot from the ATA drive, and have the OS work as normal.
+
+[ ] <Viewer Requested> SMT, SMP, scheduling (priorities w/ priority queue?, time slices, round robin, etc.)
+    [ ] Use PIT, HPET, APIC/IOAPIC/LAPIC, TSC, other timers?
+
+[ ] 2ndstage: when checking VBE graphics modes, use the highest mode found for X-res/Y-res/bpp as
+    the default, _not_ 1920x1080 32bpp. Change default text to say something similar to "highest 
+    VBE gfx mode found: NxN Nbpp. Press (Y/Enter) to accept or (N) to input a different mode."
+    This could help booting between more modern systems and older ones such as thinkpad x60, which
+    is limited to 1024x768.
+
+[ ] PE file loader for relocatable executables. This could replace the current flat binary files, at least
+    for loaded programs such as the editor/calculator, but maybe even the kernel.
+    This would probably increase support on more platforms for building everything, from the makefile or elsewhere.
+    It would also open up porting a lot more software, assuming shim/translation layers are made for translating
+    system calls or other C library calls. 
+    This would function similarly to the current ELF loading.
+
+[ ] Change build/boot process (again...) to support ELF/PE for the kernel, using homemade ELF/PE loaders.
+    This would remove the need for a flat binary kernel, but may involve a more complicated linker script
+    and other changes. The kernel would be initially compiled as relocatable (e.g. DYN type for ELF),
+    its loadable sections loaded to a set base address e.g. 0xC0000000 (3GB) and jumped to as normal.
+    Hopefully less bugs and greater support on more systems/OSes/etc. would be had by switching everything
+    to standard ELF & PE files instead of flat binaries. Or at least it's fun to learn how to do it!
+
+[ ] Add tab completion for shell commands/programs. 
+    [ ] If user presses TAB key, check all commands, if not found then 
+        check all directories in PATH string for any files/programs matching the name.
+        Checking includes comparing the initial prefix of the name of a 
+        command or file with the current (last) "word" the user has typed in
+        before hitting tab.
+        If found, type out the rest of the word at the current user input 
+        with the full name of the first found command or file.
+
+[ ] 3D graphics primitives and math, rotations, matrices, etc. Also overhaul current 2d_gfx.h, separate framebuffer? Make framebuffer a file in 
+	the filesystem e.g. /dev/fb or similar? Implement graphics in userland, not in kernel, or otherwise remove floating point math from
+	ellipses and other places so they can be added back in.
+
+[ ] Use interrupts & interrupt handlers for disk reading/loading for the PIC, or in general, for 
+    more async disk I/O. Can also look into DMA things.
+
+[ ] For ATA, implement IDENTIFY command to get info on installed disks.
+
+[ ] Switch to using 48 bit LBA for ATA disk I/O, instead of 28 bit LBA (or could detect feature 
+    and use either as needed).
+
+[ ] Assembler &| compiler for x86 asm (16 bit real mode, 32 bit protected mode, and 64 bit long mode), a subset of C, maybe a forth or lisp,
+	other languages...
+
+[ ] Implement Processes; make the "shell" a separate program and first program started up in kernel, PID 1
+
+[ ] Better 'global' error handling; either global error codes & strings, or consistent error code
+    (-1? any negative number?) and a global error string/error buffer. Could have the 
+    "last error string" as a buffer in the process struct (sort of like Plan9).
+
+[ ] 8 bit pcm audio using pc speaker & PIT. Works by PWM/Pulse width modulation.
+
+[ ] "Alias" commands, that are the same as current commands but with a different name.
+    A simple implementation could be simply forwarding the call to the actual command that is
+    aliased, or have a soft/hard link system a la unix.
+    Ex: 'alias cd = chdir' or 'alias ls = dir' 
+    [ ] Maybe can start with another array of alias_commands that are structs ("tuples" here?)
+        with char *alias_name and char *actual_command. First search the alias array,
+        if found then get the actual command name and run that. May need to use a pointer
+        to the commands array element itself, rather than a pointer to a string for
+        the actual command.
+
+[ ] Add a way for the user to add custom commands.
+
+[ ] Soundblaster 16 or ac97 or hd audio, or other audio support
+
+[ ] editor.c: rewrite/overhaul to use terminal escape sequences for cursor movement and printing? 
+    [ ] New terminal escape sequences for moving the cursor: 1 col left (X-1 if > 0), 1 col right (X+1 if < 80 or <max_X>),
+        1 row up (Y-1 if > 0), and 1 row down (Y+1 if > <max_Y>).
+        Make more of a modal editor similar in some ways to ex/vi? Maybe more line oriented like ed/ex, but still full screen
+        & visual like vi. Still include "hex" mode for binary viewing and editing.
+    [ ] Make and use an "editor state" object/struct, that contains cursor X/Y, lines, buffers?, etc.
+        Pass this struct around to functions, don't have it as global state, unless that greatly simplifies things.
+
+[ ] Image support: Include reading, writing, and displaying (with added scaling support?)
+    [ ] Start with netpbm/.ppm files for color pixels
+    [ ] Bitmap (.bmp) standard, or a subset
+    [ ] Gif? Animated gifs?
+    [ ] Jpg?
+    [ ] Png?
+
+[ ] Page swapping and algorithms for it
+
+[ ] Page cache
+
+[ ] Update OS files within itself, without rebooting, if possible. Might have backups on disk for prior OS versions in case user wants to 
+	roll back changes. Otherwise new OS programs or full kernel/full OS can be loaded to memory and jumped to at kernel entry to re-initialize.
+
+[ ] UEFI bootloader option, for 64 bit only. 32 bit can use legacy/BIOS booting with current boot sector, 2nd stage, and 3rd stage bootloaders.
+	will add a struct to be passed to the kernel, if wanted, with devices discovered and machine state. Can add printing to screen/terminal from
+	3rd stage, where 3rd stage will handle all initialization before handing off to the kernel.
+	UEFI would be a replacement for boot sector/2nd stage/3rd stage, where it will handle device discovery, memory map, framebuffer set up, 
+	etc. and pass a struct with that info to the kernel. Ideally the kernel will stay the same for both OS versions, 32 & 64 bit, only the 
+	pre-kernel setup including bootloader will be different.
+
+    [ ] For 64 bit: Add PAE (Physical Address Extension) support, 5 level paging, etc.
+
+? [ ] Maintain separate OS versions for 32 bit BIOS booting and 64 bit UEFI booting.
+? [ ] Separate OS versions all in assembly instead of C/asm. Would be mainly for edification and 
+    testing/trying out SIMD, macros, code structuring, etc.
+
+? [ ] Maintain separate OS versions per architecture; x86, x86_64/amd64, ARM, PPC, etc. Using 
+    "arch" folders or equivalent for platorm specific code e.g. assembly, CPUID discovery and 
+    features, etc.
+
+[ ] Network stack? NIC driver, ARP, IP, TCP, UDP, QUIC?, etc.
+    [ ] <Naveen Chaudhary> Add networking support, at least for a basic ping.
+
+    - As info: https://wiki.osdev.org/Network_Stack
+
+    - This will probably include: 
+        + PCI scanning to find a NIC for e.g. ethernet (RTL8139, Intel E1000, etc.)
+        + Ethernet protocol
+        + Address Resolution Protocol (ARP); Convert MAC address to/from IPv4 and/or IPv6 address
+        + Internet Protocol (IP), can use IPv4 and/or IPv6
+        + Internet Control Message Protocol (ICMP), used by 'ping' or other networking tools
+        + User Datagram Protocol (UDP)
+            ++ Dynamic Host Configuration Protocol (DHCP)
+            ++ Domain Name System (DNS)
+        + Transmission Control Protocol (TCP)
+            ++ SSL/TLS; for security
+            ++ HyperText Transfer Protocol (HTTP); Also HTTPS for security, if using SSL/TLS
+            ++ Telnet
+
+[ ] Other device drivers; USB, SATA hdd/sdd (AHCI, XHCI?), NVMe, mouse, etc.
+
+[ ] Window system or UI system; Probably tiling window manager-esque, as that's what I'm used to
+    and like to use. Mainly keyboard driven, vertical & horizontal splits, other things.
+
+[ ] Convert 32 bit OS bootsector and bootloader (bootSect, 2ndstage) to all C code, as possible.
+    This would remove the need for a separate assembler as a dependency for the OS, but is 
+    difficult as generating 16 bit code also comes with 32 bit addresses by default in gcc/clang.
+
+    ? [ ] Could try using all inline assembly and "naked" functions in a C file first, and see if 
+        that would work.
+
+    ? [ ] Alternatively, use gas syntax to not need a seperate assembler like nasm.
+
+[ ] IRC?
+
+[ ] (Text mode) browser? No JS, can do simple html/text, maybe some CSS, maybe not. Maybe a gopher browser or similar.
+
+[ ] Font editor, at least for bitmapped fonts.
+    [ ] Smaller window with actual size of character(s), and large editing window with scaled 
+        pixels and mouse & keyboard support to design characer(s).
+
+[ ] Other font support than plain bdf or bitmapped fonts; PC Screen Font (PSF), OTF, TTF, etc.
+
+[ ] Other miscellaneous C standard library implementations; string functions/abstractions, type 
+    conversions, varargs.h macros, etc.
+
+[ ] Other custom C library code/files to help with strings, SIMD, or other things.
+    [ ] e.g. typedef struct { char *data; uint32_t length; } String;
+
+[ ] Port doom? (it can't be a viable system until it runs DOOM!)
+
+[ ] Other homemade games, maybe game engines or development environments. Or text games.
+
+[ ] 16 bit real mode emulator, at least to run simple games "virtualized" within the OS. 
+    Could use real virtualization with intel VT-d, etc. or even virtual 8086 mode on the 32 bit OS.
+
+[ ] Get to the point where the user can edit and update the OS within itself; for the true
+    dogfooding experience. Updates can use versioning and should not require rebooting; Maybe some 
+    form of hot reloading the kernel or different subsystems would suffice.
+
+[ ] Finish all current TODOs in the source files (This is a joke task, it will never be done...)
+
+[ ] Every so often, go through and look for potential refactors, performance improvements, 
+    simplifications, clarifications, adding documentation, and overall less lines of code as 
+    possible.
