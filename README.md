@@ -39,18 +39,24 @@ and mind-blowing OSDEV stuff!
 Note: this OS can be compiled on Linux, if you are using Windows, we advice a WLS against MSYS2
 
 Make the binary files and run them in QEMU
+```bash
   $ make bin
   $ make run_bin
+```
 
 Make thi .iso file (FSDOS.iso)
+```bash
   $ make iso
   $ make run
+```
 
 # Requirements
 make, nasm, gcc, qemu-system, genisoimage (not working)
 
 Download them (Ubuntu/Linux)
+```bash
   $ sudo apt-get install make nasm qemu-system genisoimage
+```
   (Assuming GCC is already installed by system)
 
 # Bugs
