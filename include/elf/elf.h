@@ -64,7 +64,7 @@ enum {
 };
 
 // Load ELF File
-void *load_elf_file(uint8_t *file_address, void *exe_buffer) {
+static inline void *load_elf_file(uint8_t *file_address, void *exe_buffer) {
     Elf32_Ehdr *ehdr = (Elf32_Ehdr *)file_address;
 
     // Print ELF Info

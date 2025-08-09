@@ -11,8 +11,8 @@
                             
 #define SUPERBLOCK_DISK_SECTOR 8    // Sectors 0-7 are for boot block
 
-const uint8_t SECTORS_PER_BLOCK = FS_BLOCK_SIZE / FS_SECTOR_SIZE; 
-const uint32_t BITS_PER_BLOCK  = 8 * FS_BLOCK_SIZE; // 1 byte = 8 bits
+#define SECTORS_PER_BLOCK (FS_BLOCK_SIZE / FS_SECTOR_SIZE)
+#define BITS_PER_BLOCK (8 * FS_BLOCK_SIZE)
 
 // File types
 enum {
@@ -79,15 +79,15 @@ typedef struct {
     uint8_t padding[2];                     // Unused
 } __attribute__ ((packed)) inode_t;         // sizeof(inode_t) should = 64
                                             
-const uint8_t INODES_PER_SECTOR = FS_SECTOR_SIZE / sizeof(inode_t);
-const uint8_t INODES_PER_BLOCK = FS_BLOCK_SIZE / sizeof(inode_t);
+#define INODES_PER_SECTOR (FS_SECTOR_SIZE / sizeof(inode_t))
+#define INODES_PER_BLOCK (FS_BLOCK_SIZE / sizeof(inode_t))
 
 typedef struct {
     uint32_t id;                            // This will match the inode id
     char name[60];
 } __attribute__ ((packed)) dir_entry_t;     // sizeof(dir_entry_t) = 64 bytes
                                             
-const uint8_t DIR_ENTRIES_PER_BLOCK = FS_BLOCK_SIZE / sizeof(dir_entry_t);
+#define DIR_ENTRIES_PER_BLOCK (FS_BLOCK_SIZE / sizeof(dir_entry_t))
 
 typedef struct {
     uint8_t *address;           // Base virtual address file is loaded to
@@ -101,7 +101,7 @@ typedef struct {
 } __attribute__ ((packed)) open_file_table_t;       // sizeof(open_file_table_t) should = 32 bytes
                                                     
 // Convert bytes to blocks
-uint32_t bytes_to_blocks(const uint32_t bytes) {
+static inline uint32_t bytes_to_blocks(const uint32_t bytes) {
     if (bytes == 0) return 0;
     if (bytes <= FS_BLOCK_SIZE) return 1;
 
@@ -109,7 +109,7 @@ uint32_t bytes_to_blocks(const uint32_t bytes) {
 }
 
 // Convert bytes to sectors
-uint32_t bytes_to_sectors(const uint32_t bytes) {
+static inline uint32_t bytes_to_sectors(const uint32_t bytes) {
     if (bytes == 0) return 0;
     if (bytes <= FS_SECTOR_SIZE) return 1;
 

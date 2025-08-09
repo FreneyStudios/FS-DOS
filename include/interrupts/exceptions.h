@@ -7,7 +7,7 @@
 #include "../print/print_types.h"
 #include "../gfx/2d_gfx.h"
 
-__attribute__ ((interrupt)) void div_by_0_handler(int_frame_32_t *frame)
+__attribute__ ((interrupt)) static inline void div_by_0_handler(int_frame_32_t *frame)
 {
     uint16_t x = 0, y = 0;
     uint32_t color = user_gfx_info->fg_color;   // Save current text color
@@ -22,7 +22,7 @@ __attribute__ ((interrupt)) void div_by_0_handler(int_frame_32_t *frame)
     frame->eip++;
 }
 
-__attribute__ ((interrupt)) void page_fault_handler(int_frame_32_t *frame, const uint32_t error_code)
+__attribute__ ((interrupt)) static inline void page_fault_handler(int_frame_32_t *frame, const uint32_t error_code)
 {
     (void)frame;    // Silence compiler warnings
                     

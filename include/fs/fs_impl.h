@@ -6,20 +6,22 @@
 #include "C/stdbool.h"
 #include "C/stdio.h"
 #include "fs/fs.h"
-#include "sys/syscall_wrappers.h" 
+#include "sys/syscall_wrappers.h"
+#include "disk/file_ops.h"
+#include "global/global_addresses.h"
 
 #define MAX_PATH_SIZE 256
 
-char *current_dir;                      // "Current working directory" string
-inode_t current_dir_inode;              // Inode for current working dir
-inode_t current_parent_inode;
-uint8_t temp_sector[FS_SECTOR_SIZE];    // Temporary work sector
-uint8_t temp_block[FS_BLOCK_SIZE];      // Temporary work block
-inode_t root_inode;                     // Static place to put root dir 
-superblock_t superblock;
+extern char *current_dir;                      // "Current working directory" string
+extern inode_t current_dir_inode;              // Inode for current working dir
+extern inode_t current_parent_inode;
+extern uint8_t temp_sector[FS_SECTOR_SIZE];    // Temporary work sector
+extern uint8_t temp_block[FS_BLOCK_SIZE];      // Temporary work block
+extern inode_t root_inode;                     // Static place to put root dir
+extern superblock_t superblock;
 
 // Load a file from disk to memory 
-bool fs_load_file(inode_t *inode, uint32_t address) {
+static inline bool fs_load_file(inode_t *inode, uint32_t address) {
     // Read all of the file's blocks to memory
     uint32_t total_blocks = bytes_to_blocks(inode->size_bytes);
     uint32_t address_offset = 0;
@@ -43,7 +45,7 @@ bool fs_load_file(inode_t *inode, uint32_t address) {
 }
 
 // Save a file from memory to disk 
-bool fs_save_file(inode_t *inode, uint32_t address) {
+static inline bool fs_save_file(inode_t *inode, uint32_t address) {
     // Write all of the file's blocks to disk
     uint32_t total_blocks = bytes_to_blocks(inode->size_bytes);
     uint32_t address_offset = 0;
@@ -67,7 +69,7 @@ bool fs_save_file(inode_t *inode, uint32_t address) {
 }
 
 // Get inode for a given string/file name contained in a given directory inode
-inode_t inode_for_name_in_directory(const inode_t directory_inode, const char *file_name) {
+static inline inode_t inode_for_name_in_directory(const inode_t directory_inode, const char *file_name) {
     uint32_t total_blocks = bytes_to_blocks(directory_inode.size_bytes);
     dir_entry_t *dir_entry = 0;
 
@@ -115,7 +117,7 @@ inode_t inode_for_name_in_directory(const inode_t directory_inode, const char *f
 
 // Get inode for last file in given path
 // e.g. /folderA/./.././fileB -> fileB's inode
-inode_t inode_from_path(const char *starting_path) {
+static inline inode_t inode_from_path(const char *starting_path) {
     char *pos = (char *)starting_path;  
     inode_t current_inode;
 
@@ -167,7 +169,7 @@ inode_t inode_from_path(const char *starting_path) {
 }
 
 // Get inode for a given inode(file) id
-inode_t inode_from_id(const uint32_t id) {
+static inline inode_t inode_from_id(const uint32_t id) {
     if (id == 0) return (inode_t){0};
 
     // Load sector containing inode with given id
@@ -182,7 +184,7 @@ inode_t inode_from_id(const uint32_t id) {
 
 // Get inode for parent directory of last file in given path
 // e.g. /folderA/./.././folderB/folderC -> folderB's inode
-inode_t parent_inode_from_path(const char *starting_path) {
+static inline inode_t parent_inode_from_path(const char *starting_path) {
     char *pos = (char *)starting_path;
 
     pos = strrchr(pos, '/'); // Get end of last directory in path
@@ -206,7 +208,7 @@ inode_t parent_inode_from_path(const char *starting_path) {
 }
 
 // Grab the last file name from a path (string)
-char *last_name_in_path(const char *path) {
+static inline char *last_name_in_path(const char *path) {
     char *pos = (char *)path;
     pos = strrchr(path, '/'); // End of last dir in path
                               
@@ -218,13 +220,13 @@ char *last_name_in_path(const char *path) {
 }
 
 // Get current timestamp
-fs_datetime_t current_timestamp(void) {
+static inline fs_datetime_t current_timestamp(void) {
     return *(fs_datetime_t *)RTC_DATETIME_AREA;
 }
 
 // Generic helper function to set a given bit in a chunk
 //  of data
-void set_bit_in_disk_block(const uint32_t block, uint32_t bit) {
+static inline void set_bit_in_disk_block(const uint32_t block, uint32_t bit) {
     // Load block to memory
     rw_sectors(SECTORS_PER_BLOCK, block * SECTORS_PER_BLOCK, (uint32_t)temp_block, READ_WITH_RETRY);
 
@@ -239,7 +241,7 @@ void set_bit_in_disk_block(const uint32_t block, uint32_t bit) {
 }
 
 // Generic helper function to clear a given bit in a chunk of data
-void clear_bit_in_disk_block(const uint32_t block, uint32_t bit) {
+static inline void clear_bit_in_disk_block(const uint32_t block, uint32_t bit) {
     // Load block to memory
     rw_sectors(SECTORS_PER_BLOCK, block * SECTORS_PER_BLOCK, (uint32_t)temp_block, READ_WITH_RETRY);
 
@@ -254,32 +256,32 @@ void clear_bit_in_disk_block(const uint32_t block, uint32_t bit) {
 }
 
 // Set a bit in the inode bitmap
-void set_bit_in_inode_bitmap(const uint32_t bit) {
+static inline void set_bit_in_inode_bitmap(const uint32_t bit) {
     set_bit_in_disk_block(superblock.first_inode_bitmap_block + (bit / BITS_PER_BLOCK),
                           bit % BITS_PER_BLOCK);
 }
 
 // Set a bit in the data bitmap
-void set_bit_in_data_bitmap(const uint32_t bit) {
+static inline void set_bit_in_data_bitmap(const uint32_t bit) {
     set_bit_in_disk_block(superblock.first_data_bitmap_block + (bit / BITS_PER_BLOCK),
                             bit % BITS_PER_BLOCK);
 }
 
 // Clear a bit in the inode bitmap
-void clear_bit_in_inode_bitmap(const uint32_t bit) {
+static inline void clear_bit_in_inode_bitmap(const uint32_t bit) {
     clear_bit_in_disk_block(superblock.first_inode_bitmap_block + (bit / BITS_PER_BLOCK),
                             bit % BITS_PER_BLOCK);
 }
 
 // Clear a bit in the data bitmap
-void clear_bit_in_data_bitmap(const uint32_t bit) {
+static inline void clear_bit_in_data_bitmap(const uint32_t bit) {
     clear_bit_in_disk_block(superblock.first_data_bitmap_block + (bit / BITS_PER_BLOCK),
                             bit % BITS_PER_BLOCK);
 }
 
 // Generic helper function to find the first unset bit within
 //  a chunk of data
-uint32_t find_first_free_bit_in_disk_blocks(const uint32_t start_block, const uint32_t length_blocks) {
+static inline uint32_t find_first_free_bit_in_disk_blocks(const uint32_t start_block, const uint32_t length_blocks) {
     for (uint32_t i = 0; i < length_blocks; i++) {
         // Read next block to memory
         rw_sectors(SECTORS_PER_BLOCK, 
@@ -306,7 +308,7 @@ uint32_t find_first_free_bit_in_disk_blocks(const uint32_t start_block, const ui
 }
 
 // Update superblock on disk
-void update_superblock(void) {
+static inline void update_superblock(void) {
     // Update memory with current data
     *(superblock_t *)SUPERBLOCK_ADDRESS = superblock;   
 
@@ -315,7 +317,7 @@ void update_superblock(void) {
 }
 
 // Helper function to update an inode on disk, in the inode disk blocks
-void update_inode_on_disk(const inode_t inode) {
+static inline void update_inode_on_disk(const inode_t inode) {
     rw_sectors(1, 
                (superblock.first_inode_block * SECTORS_PER_BLOCK) + 
                    (inode.id / INODES_PER_SECTOR),
@@ -336,7 +338,7 @@ void update_inode_on_disk(const inode_t inode) {
 // including: new inode, updating inode bitmap blocks, data bitmap blocks,
 // inode blocks, and data blocks for new file. Will probably need to also
 // update superblock
-inode_t fs_create_file(const char *path) {
+static inline inode_t fs_create_file(const char *path) {
     // Disallow creating files with special names 
     if (!strncmp(path, ".", strlen(path))  || 
         !strncmp(path, "..", strlen(path)) ||
@@ -534,7 +536,7 @@ done:
 };
 
 // Read a given directory's file data, and print to screen
-bool print_dir(const char *path) {
+static inline bool print_dir(const char *path) {
     const inode_t dir = inode_from_path(path);
     if (dir.id == 0) return false;
 
@@ -599,7 +601,7 @@ bool print_dir(const char *path) {
 }
 
 // Create a new directory file in the filesystem given a file path
-bool fs_make_dir(char *argv[]) {
+static inline bool fs_make_dir(char *argv[]) {
     char *path = argv[1];   // argv[0] would be the shell command itself e.g. mkdir
     if (!path) return false;
 
@@ -671,7 +673,7 @@ bool fs_make_dir(char *argv[]) {
 }
 
 // Change current directory
-bool fs_change_dir(char *argv[]) {
+static inline bool fs_change_dir(char *argv[]) {
     char *path = argv[1];
     if (!path) return false;
 
@@ -731,7 +733,7 @@ bool fs_change_dir(char *argv[]) {
 }
 
 // Delete a single file
-bool fs_delete_file(char *argv[]) {
+static inline bool fs_delete_file(char *argv[]) {
     char *path = argv[1];
 
     if (!path) return false;
@@ -858,7 +860,7 @@ bool fs_delete_file(char *argv[]) {
 }
 
 // Delete a directory along with all nested files/directories within it
-bool fs_delete_dir(char *argv[]) {
+static inline bool fs_delete_dir(char *argv[]) {
     (void)argv;
     // TODO:
     return true;
@@ -866,7 +868,7 @@ bool fs_delete_dir(char *argv[]) {
 
 // Rename a file 
 // Example argv[]/command: "ren /folderA/fileA.txt fileB.txt"
-bool fs_rename_file(char *argv[]) {
+static inline bool fs_rename_file(char *argv[]) {
     char *path = argv[1];
     char *new_name = argv[2];
 

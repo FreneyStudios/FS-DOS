@@ -17,13 +17,13 @@ typedef struct malloc_block {
     struct malloc_block *next;  // Next block of memory
 } malloc_block_t;
 
-static malloc_block_t *malloc_list_head = 0;    // Start of linked list
-static uint32_t malloc_virt_address     = 0;
-static uint32_t malloc_phys_address     = 0;
-static uint32_t total_malloc_pages      = 0;
+extern malloc_block_t *malloc_list_head;
+extern uint32_t malloc_virt_address;
+extern uint32_t malloc_phys_address;
+extern uint32_t total_malloc_pages;
 
 // Initialize malloc bytes/linked list for first malloc() call from a program
-void malloc_init(const uint32_t bytes)
+static inline void malloc_init(const uint32_t bytes)
 {
     total_malloc_pages = bytes / PAGE_SIZE;
     if (bytes % PAGE_SIZE > 0) total_malloc_pages++;    // Partial page
@@ -50,7 +50,7 @@ void malloc_init(const uint32_t bytes)
 
 // Split linked list node/memory block into two by inserting a new block with
 //   the size of the difference of original block and requested size
-void malloc_split(malloc_block_t *node, const uint32_t size)
+static inline void malloc_split(malloc_block_t *node, const uint32_t size)
 {
     malloc_block_t *new_node = (malloc_block_t *)((void *)node + size + sizeof(malloc_block_t));
 
@@ -64,7 +64,7 @@ void malloc_split(malloc_block_t *node, const uint32_t size)
 }
 
 // Find & allocate next block of memory
-void *malloc_next_block(const uint32_t size)
+static inline void *malloc_next_block(const uint32_t size)
 {
     malloc_block_t *cur = 0;
 
@@ -117,7 +117,7 @@ void *malloc_next_block(const uint32_t size)
 }
 
 // Merge consecutive free list nodes to prevent (some) memory fragmentation
-void merge_free_blocks(void)
+static inline void merge_free_blocks(void)
 {
     malloc_block_t *cur = malloc_list_head;
 
@@ -130,7 +130,7 @@ void merge_free_blocks(void)
     }
 }
 
-void malloc_free(void *ptr)
+static inline void malloc_free(void *ptr)
 {
     for (malloc_block_t *cur = malloc_list_head; cur->next; cur = cur->next) 
         if ((void *)cur + sizeof(malloc_block_t) == ptr) {

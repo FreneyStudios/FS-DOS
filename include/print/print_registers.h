@@ -7,7 +7,7 @@
 
 #include "C/stdio.h"
 
-void print_registers()
+static inline void print_registers()
 {
     uint8_t *printRegHeading = "\x0A\x0D" "--------  ------------" 
                                "\x0A\x0D" "Register  Mem Location" 

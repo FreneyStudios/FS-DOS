@@ -30,6 +30,7 @@
 #include "sys/syscall_wrappers.h"
 #include "fs/fs_impl.h"
 #include "elf/elf.h"
+#include "gui/window.h"
 
 // Open file table & inode table pointers
 open_file_table_t *open_file_table;
@@ -223,10 +224,35 @@ __attribute__ ((section ("kernel_entry"))) void kernel_main(void) {
     // Print OS boot message
     printf("\eCSROFF;%s", menuString);
 
+    // Check for 't' key to enter test mode
+    if (get_key() == 't') {
+        // Fall through to CLI for testing
+    } else {
+        init_window_manager();
+        create_window(100, 100, 200, 150, "Test Window");
+
+        while (1) {
+            clear_screen(convert_color(BLUE));
+            draw_all_windows();
+
+            // Simple mouse cursor drawing for testing
+            mouse_state_t* mouse = get_mouse_state();
+            Point p0 = {mouse->x, mouse->y};
+            Point p1 = {mouse->x + 10, mouse->y + 10};
+            fill_rect_solid(p0, p1, convert_color(RED));
+
+            // Hang here in GUI mode
+             __asm__ __volatile__ ("sti;hlt;cli");
+        }
+    }
+
     // --------------------------------------------------------------------
     // Get user input, print to screen & run command/program  
     // --------------------------------------------------------------------
     while (1) {
+        // Reset tokens data, arrays, and variables for next input line
+        memset(cmdString, 0, sizeof cmdString);
+
         // Reset tokens data, arrays, and variables for next input line
         memset(cmdString, 0, sizeof cmdString);
 

@@ -62,17 +62,17 @@ typedef struct {
     pd_entry entries[TABLES_PER_DIRECTORY];
 } page_directory;
 
-page_directory *current_page_directory = 0;
+extern page_directory *current_page_directory;
 
 // Get entry in page table for given address
-pt_entry *get_pt_entry(page_table *pt, virtual_address address)
+static inline pt_entry *get_pt_entry(page_table *pt, virtual_address address)
 {
     if (pt) return &pt->entries[PT_INDEX(address)];
     return 0;
 }
 
 // Get entry in page directory for given address
-pd_entry *get_pd_entry(page_table *pd, virtual_address address)
+static inline pd_entry *get_pd_entry(page_table *pd, virtual_address address)
 {
     if (pd) return &pd->entries[PT_INDEX(address)];
     return 0;
@@ -80,7 +80,7 @@ pd_entry *get_pd_entry(page_table *pd, virtual_address address)
 
 // Return a page for a given virtual address in the current
 //   page directory
-pt_entry *get_page(const virtual_address address)
+static inline pt_entry *get_page(const virtual_address address)
 {
     // Get page directory
     page_directory *pd = current_page_directory; 
@@ -97,7 +97,7 @@ pt_entry *get_page(const virtual_address address)
 }
 
 // Allocate a page of memory
-void *allocate_page(pt_entry *page) 
+static inline void *allocate_page(pt_entry *page)
 {
     void *block = allocate_blocks(1);
     if (block) {
@@ -110,7 +110,7 @@ void *allocate_page(pt_entry *page)
 }
 
 // Free a page of memory
-void free_page(pt_entry *page)
+static inline void free_page(pt_entry *page)
 {
     void *address = (void *)PAGE_PHYS_ADDRESS(page);
     if (address) free_blocks(address, 1);
@@ -119,7 +119,7 @@ void free_page(pt_entry *page)
 }
 
 // Set the current page directory
-bool set_page_directory(page_directory *pd)
+static inline bool set_page_directory(page_directory *pd)
 {
     if (!pd) return false;
 
@@ -132,13 +132,13 @@ bool set_page_directory(page_directory *pd)
 }
 
 // Flush a single page from the TLB (translation lookaside buffer)
-void flush_tlb_entry(virtual_address address)
+static inline void flush_tlb_entry(virtual_address address)
 {
     __asm__ __volatile__ ("cli; invlpg (%0); sti" : : "r"(address) );
 }
 
 // Map a page
-bool map_page(void *phys_address, void *virt_address)
+static inline bool map_page(void *phys_address, void *virt_address)
 {
     // Get page
     page_directory *pd = current_page_directory;
@@ -178,7 +178,7 @@ bool map_page(void *phys_address, void *virt_address)
 }
 
 // Unmap a page
-void unmap_page(void *virt_address)
+static inline void unmap_page(void *virt_address)
 {
     pt_entry *page = get_page((uint32_t)virt_address);
 
@@ -187,7 +187,7 @@ void unmap_page(void *virt_address)
 }
 
 // Initialize virtual memory manager
-bool initialize_virtual_memory_manager(void)
+static inline bool initialize_virtual_memory_manager(void)
 {
     // Create a default page directory
     page_directory *dir = (page_directory *)allocate_blocks(3);
