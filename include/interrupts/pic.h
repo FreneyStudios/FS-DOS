@@ -24,10 +24,10 @@
 
 #define PS2_DATA_PORT 0x60
 
-uint32_t *sleep_timer_ticks = (uint32_t *)IRQ0_SLEEP_TIMER_TICKS_AREA;
+extern uint32_t *sleep_timer_ticks;
 
 // Send end of interrupt command to signal IRQ has been handled
-void send_pic_eoi(uint8_t irq)
+static inline void send_pic_eoi(uint8_t irq)
 {
     if (irq >= 8) outb(PIC_2_CMD, PIC_EOI);
 
@@ -35,7 +35,7 @@ void send_pic_eoi(uint8_t irq)
 }
 
 // Disable PIC, if using APIC or IOAPIC
-void disable_pic(void)
+static inline void disable_pic(void)
 {
     outb(PIC_2_DATA, 0xFF);
     outb(PIC_1_DATA, 0xFF);
@@ -43,7 +43,7 @@ void disable_pic(void)
 
 // Set IRQ mask by setting the bit in the IMR (interrupt mask register)
 //   This will ignore the IRQ
-void set_irq_mask(uint8_t irq)
+static inline void set_irq_mask(uint8_t irq)
 {
     uint16_t port;
     uint8_t value;
@@ -64,7 +64,7 @@ void set_irq_mask(uint8_t irq)
 
 // Clear IRQ mask by clearing the bit in the IMR (interrupt mask register)
 //   This will enable recognizing the IRQ
-void clear_irq_mask(uint8_t irq)
+static inline void clear_irq_mask(uint8_t irq)
 {
     uint16_t port;
     uint8_t value;
@@ -84,7 +84,7 @@ void clear_irq_mask(uint8_t irq)
 }
 
 // Remap PIC to use interrupts above first 15, to not interfere with exceptions (ISRs 0-31)
-void remap_pic(void)
+static inline void remap_pic(void)
 {
     uint8_t pic_1_mask, pic_2_mask;
 
@@ -122,7 +122,7 @@ void remap_pic(void)
 }
 
 // PIT Timer Channel 0 PIC IRQ0 interrupt handler
-__attribute__ ((interrupt)) void timer_irq0_handler(int_frame_32_t *frame)
+__attribute__ ((interrupt)) static inline void timer_irq0_handler(int_frame_32_t *frame)
 {
     (void)frame;    // Silence compiler warnings
                     
@@ -132,7 +132,7 @@ __attribute__ ((interrupt)) void timer_irq0_handler(int_frame_32_t *frame)
 }
 
 // Change PIT Channel frequency
-void set_pit_channel_mode_frequency(const uint8_t channel, const uint8_t operating_mode, const uint16_t frequency)
+static inline void set_pit_channel_mode_frequency(const uint8_t channel, const uint8_t operating_mode, const uint16_t frequency)
 {
     // Invalid input
     if (channel > 2) return;
@@ -181,7 +181,7 @@ void set_pit_channel_mode_frequency(const uint8_t channel, const uint8_t operati
 }
 
 // Keyboard IRQ1 handler
-__attribute__ ((interrupt)) void keyboard_irq1_handler(int_frame_32_t *frame) {
+__attribute__ ((interrupt)) static inline void keyboard_irq1_handler(int_frame_32_t *frame) {
     (void)frame;    // Silence compiler warnings
                     
     enum {
@@ -255,7 +255,7 @@ __attribute__ ((interrupt)) void keyboard_irq1_handler(int_frame_32_t *frame) {
 }
 
 // Show date time info or not
-fs_datetime_t *datetime = (fs_datetime_t *)RTC_DATETIME_AREA;
+extern fs_datetime_t *datetime;
 
 // CMOS registers
 enum {
@@ -264,7 +264,7 @@ enum {
 };
 
 // Read CMOS update in progress flag/bit in status register A
-bool cmos_update_in_progress(void)
+static inline bool cmos_update_in_progress(void)
 {
     outb(cmos_address, 0x8A);       // Will read from status register A, disable NMI
     io_wait();                      // Small delay
@@ -272,7 +272,7 @@ bool cmos_update_in_progress(void)
 }
 
 // Get an RTC register value
-uint8_t get_rtc_register(uint8_t reg)
+static inline uint8_t get_rtc_register(uint8_t reg)
 {
     outb(cmos_address, reg | 0x80);     // Disable NMI when sending register to read
     io_wait();                          // Small delay
@@ -280,7 +280,7 @@ uint8_t get_rtc_register(uint8_t reg)
 }
 
 // Enable RTC
-void enable_rtc(void)
+static inline void enable_rtc(void)
 {
     uint8_t prev_regB_value = get_rtc_register(0x0B);
 
@@ -292,7 +292,7 @@ void enable_rtc(void)
 }
 
 // Disable RTC
-void disable_rtc(void)
+static inline void disable_rtc(void)
 {
     uint8_t prev_regB_value;
 
@@ -308,7 +308,7 @@ void disable_rtc(void)
 }
 
 // CMOS RTC IRQ8 Handler
-__attribute__ ((interrupt)) void cmos_rtc_irq8_handler (int_frame_32_t *frame)
+__attribute__ ((interrupt)) static inline void cmos_rtc_irq8_handler (int_frame_32_t *frame)
 {
     (void)frame;    // Silence compiler warnings
                     

@@ -12,7 +12,7 @@
 //  input 2: row to print to    (address, not value)
 //  input 3: char to print
 //----------------------------------------------
-void print_char(uint16_t *cursor_x, uint16_t *cursor_y, uint8_t in_char)
+static inline void print_char(uint16_t *cursor_x, uint16_t *cursor_y, uint8_t in_char)
 {
     uint8_t *framebuffer    = (uint8_t *)gfx_mode->physical_base_pointer;   // Framebuffer pointer
     uint8_t bytes_per_pixel = (gfx_mode->bits_per_pixel+1) / 8;             // Get # of bytes per pixel, add 1 to fix 15bpp modes
@@ -120,7 +120,7 @@ void print_char(uint16_t *cursor_x, uint16_t *cursor_y, uint8_t in_char)
 //  input 2: row to print to	(address, not value)
 //  input 3: address of string
 //----------------------------------------------
-void print_string(uint16_t *cursor_x, uint16_t *cursor_y, const uint8_t *in_string)
+static inline void print_string(uint16_t *cursor_x, uint16_t *cursor_y, const uint8_t *in_string)
 {
     for (; *in_string != '\0'; in_string++)
         print_char(cursor_x, cursor_y, *in_string);
@@ -129,7 +129,7 @@ void print_string(uint16_t *cursor_x, uint16_t *cursor_y, const uint8_t *in_stri
 /*
  * print_dec.h: Print a base 10 integer as a string of characters (maybe an itoa or itostr?)
  */
-void print_dec(uint16_t *cursor_x, uint16_t *cursor_y, int32_t number)
+static inline void print_dec(uint16_t *cursor_x, uint16_t *cursor_y, int32_t number)
 {
     uint8_t dec_string[80];
     uint8_t i = 0, j, temp;
@@ -173,7 +173,7 @@ void print_dec(uint16_t *cursor_x, uint16_t *cursor_y, int32_t number)
 // Ascii '0'-'9' = hex 30h-39h
 // Ascii 'A'-'F' = hex 41h-46h
 // Ascii 'a'-'f' = hex 61h-66h
-void print_hex(uint16_t *cursor_x, uint16_t *cursor_y, uint32_t hex_num)
+static inline void print_hex(uint16_t *cursor_x, uint16_t *cursor_y, uint32_t hex_num)
 {
     uint8_t hex_string[80];
     uint8_t *ascii_numbers = "0123456789ABCDEF";

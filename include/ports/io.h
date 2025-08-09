@@ -4,7 +4,7 @@
 #pragma once
 
 // Write AL to port DX
-void outb(uint16_t port, uint8_t value)
+static inline void outb(uint16_t port, uint8_t value)
 {
     // Out imm8, al will be used if applicable ("N" constraint will be converted to immediate constant),
     //   otherwise Out DX, and AL will be used
@@ -12,7 +12,7 @@ void outb(uint16_t port, uint8_t value)
 }
 
 // Write AX to port DX
-void outw(uint16_t port, uint16_t value)
+static inline void outw(uint16_t port, uint16_t value)
 {
     // Out imm8, ax will be used if applicable ("N" constraint will be converted to immediate constant),
     //   otherwise Out DX, and AX will be used
@@ -20,7 +20,7 @@ void outw(uint16_t port, uint16_t value)
 }
 
 // Read in value from port DX to AL & return AL
-uint8_t inb(uint16_t port)
+static inline uint8_t inb(uint16_t port)
 {
     uint8_t ret_val;
 
@@ -31,7 +31,7 @@ uint8_t inb(uint16_t port)
 }
 
 // Read in value from port DX to AX & return AX
-uint16_t inw(uint16_t port)
+static inline uint16_t inw(uint16_t port)
 {
     uint16_t ret_val;
 
@@ -42,7 +42,7 @@ uint16_t inw(uint16_t port)
 }
 
 // Wait 1 I/O cycle for I/O operations to complete
-void io_wait(void)
+static inline void io_wait(void)
 {
     // Port 0x80 is used for checkpoints during POST
     //  Linux uses this, so we "should" be OK to use it also

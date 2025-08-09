@@ -12,7 +12,7 @@
 enum {
     READ_WITH_RETRY = 0x20,
     WRITE_WITH_RETRY = 0x30,
-} ata_pio_commands;
+};
 
 //-------------------------------------
 // Check for filename in filetable
@@ -22,7 +22,7 @@ enum {
 //       (2): File pointer will point to start of file table entry if found
 //-------------------------------------
 // TODO: Remove this function, as it's not used anymore?
-uint8_t *check_filename(uint8_t *filename, const uint16_t filename_length)
+static inline uint8_t *check_filename(uint8_t *filename, const uint16_t filename_length)
 {
     uint16_t i; 
     uint8_t *ptr = (uint8_t *)0x1000;    // 1000h = location of fileTable in memory
@@ -49,7 +49,7 @@ uint8_t *check_filename(uint8_t *filename, const uint16_t filename_length)
 //   3: Address to Read/Write data from/to
 //   4: Command to perform (Reading or Writing)
 //-----------------------------------------------
-void rw_sectors(const uint32_t size_in_sectors, uint32_t starting_sector, uint32_t address, const uint8_t command) {
+static inline void rw_sectors(const uint32_t size_in_sectors, uint32_t starting_sector, uint32_t address, const uint8_t command) {
     //uint8_t head = 0;
     //uint16_t cylinder = 0;
 
@@ -137,7 +137,7 @@ void rw_sectors(const uint32_t size_in_sectors, uint32_t starting_sector, uint32
 // Input 1 - File name to delete
 //	     2 - Length of file name
 // Output 1 - Return code
-uint16_t delete_file(uint8_t *filename, uint16_t filename_length)
+static inline uint16_t delete_file(uint8_t *filename, uint16_t filename_length)
 {
     uint8_t ft_size         = 0;
     uint8_t ft_start_sector = 0;
@@ -180,7 +180,7 @@ uint16_t delete_file(uint8_t *filename, uint16_t filename_length)
 //       3: Memory offset to load data to
 //       4: File extension
 // output 1: Return code
-uint16_t load_file(uint8_t *filename, uint16_t filename_length, uint32_t address, uint8_t *file_ext)
+static inline uint16_t load_file(uint8_t *filename, uint16_t filename_length, uint32_t address, uint8_t *file_ext)
 {
     uint16_t return_code = 0;
     uint8_t *file_ptr;
@@ -210,7 +210,7 @@ uint16_t load_file(uint8_t *filename, uint16_t filename_length, uint32_t address
 //		 3: New file name  (address)
 //		 4: New file name length
 // Output 1: Return code
-uint16_t rename_file(uint8_t *file1, uint16_t file1_length, uint8_t *file2, uint16_t file2_length)
+static inline uint16_t rename_file(uint8_t *file1, uint16_t file1_length, uint8_t *file2, uint16_t file2_length)
 {
     uint16_t return_code    = 0;
     uint8_t ft_size         = 0;
@@ -253,7 +253,7 @@ uint16_t rename_file(uint8_t *file1, uint16_t file1_length, uint8_t *file2, uint
 //       3: File size (in hex sectors)
 //       4: Memory offset to save from
 // Output 1: Return code
-uint16_t save_file(uint8_t *filename, uint8_t *file_ext, uint8_t in_file_size, uint32_t address)
+static inline uint16_t save_file(uint8_t *filename, uint8_t *file_ext, uint8_t in_file_size, uint32_t address)
 {
     uint16_t return_code      = 0;
     uint16_t filename_length  = 10;

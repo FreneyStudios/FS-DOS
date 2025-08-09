@@ -12,7 +12,7 @@ typedef struct {
     bool    ctrl; 
 } __attribute__ ((packed)) key_info_t;
 
-uint8_t get_key(void) {
+static inline uint8_t get_key(void) {
     key_info_t *key_info = (key_info_t *)KEY_INFO_ADDRESS;
     while (!key_info->key) __asm__ __volatile__("hlt");
 

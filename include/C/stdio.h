@@ -12,11 +12,11 @@
 #define stdout 1
 #define stderr 2
 
-uint8_t *write_buffer = 0;
-uint32_t len = 0;
+extern uint8_t *write_buffer;
+extern uint32_t len;
 
 // Print a hex integer
-void printf_hex(const uint32_t num)
+static inline void printf_hex(const uint32_t num)
 {
     const uint8_t digits[] = "0123456789ABCDEF";
     uint8_t buf[16] = {0};
@@ -35,7 +35,7 @@ void printf_hex(const uint32_t num)
 }
 
 // Print a decimal integer
-void printf_int(const int32_t num, const uint8_t base, const bool sign)
+static inline void printf_int(const int32_t num, const uint8_t base, const bool sign)
 {
     const uint8_t digits[] = "0123456789ABCDEF";
     bool negative = false;
@@ -59,7 +59,7 @@ void printf_int(const int32_t num, const uint8_t base, const bool sign)
 }
 
 // Print formatted string
-void printf(const char *fmt, ...)
+static inline void printf(const char *fmt, ...)
 {
     uint32_t *arg_ptr = (uint32_t *)&fmt;
     int state = 0;  // Inside a format string or not?
@@ -151,13 +151,13 @@ void printf(const char *fmt, ...)
 }
 
 // Print single character
-void putc(char c)
+static inline void putc(char c)
 {
     printf("%c", c);
 }
 
 // Print a string
-void puts(char *s)
+static inline void puts(char *s)
 {
     printf("%s", s);
 }

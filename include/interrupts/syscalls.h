@@ -42,14 +42,14 @@ extern uint32_t current_open_inodes;
 extern uint32_t next_available_file_virtual_address;
 
 // Test syscall 0
-int32_t syscall_test0(syscall_regs_t regs) {
+static inline int32_t syscall_test0(syscall_regs_t regs) {
     printf("\r\nTest Syscall; Syscall # (EAX): %d\r\n", regs.eax);
 
     return EXIT_SUCCESS;
 }
 
 // Test syscall 1
-int32_t syscall_test1(syscall_regs_t regs) {
+static inline int32_t syscall_test1(syscall_regs_t regs) {
     printf("\r\nTest Syscall; Syscall # (EAX): %d\r\n", regs.eax);
 
     return EXIT_SUCCESS;
@@ -58,7 +58,7 @@ int32_t syscall_test1(syscall_regs_t regs) {
 // Sleep for a given number of milliseconds
 // INPUTS:
 //  EBX = # of milliseconds
-int32_t syscall_sleep(syscall_regs_t regs) {
+static inline int32_t syscall_sleep(syscall_regs_t regs) {
     *sleep_timer_ticks = regs.ebx;  // Set ticks value to sleep for
 
     // Wait ("Sleep") until # of ticks is 0
@@ -70,7 +70,7 @@ int32_t syscall_sleep(syscall_regs_t regs) {
 // Allocate uninitialized memory
 // INPUT:
 //   EBX = size in bytes to allocate
-int32_t syscall_malloc(syscall_regs_t regs) {
+static inline int32_t syscall_malloc(syscall_regs_t regs) {
     uint32_t bytes = regs.ebx;
 
     // First malloc() from the calling program?
@@ -90,7 +90,7 @@ int32_t syscall_malloc(syscall_regs_t regs) {
 // Free allocated memory at a pointer
 // INPUT:
 //   EBX = pointer to malloc-ed bytes
-int32_t syscall_free(syscall_regs_t regs) {
+static inline int32_t syscall_free(syscall_regs_t regs) {
     void *ptr = (void *)regs.ebx;
 
     malloc_free(ptr);
@@ -99,7 +99,7 @@ int32_t syscall_free(syscall_regs_t regs) {
 }
 
 // Write system call: Write bytes from a buffer to a file descriptor
-int32_t syscall_write(syscall_regs_t regs) {
+static inline int32_t syscall_write(syscall_regs_t regs) {
     int32_t fd   = regs.ebx;
     void *buf    = (void *)regs.ecx;
     uint32_t len = regs.edx;
@@ -206,7 +206,7 @@ int32_t syscall_write(syscall_regs_t regs) {
 }
 
 // Open system call: open a file
-int32_t syscall_open(syscall_regs_t regs) {
+static inline int32_t syscall_open(syscall_regs_t regs) {
     char *filepath = (char *)regs.ebx;
     int flags      = regs.ecx;
 
@@ -358,7 +358,7 @@ int32_t syscall_open(syscall_regs_t regs) {
 }
 
 // Close system call: close an open file
-int32_t syscall_close(syscall_regs_t regs) {
+static inline int32_t syscall_close(syscall_regs_t regs) {
     int32_t fd = regs.ebx;
 
     // Error for invalid file descriptor
@@ -407,7 +407,7 @@ int32_t syscall_close(syscall_regs_t regs) {
 }
 
 // Read system call: read bytes from an open file to a buffer
-int32_t syscall_read(syscall_regs_t regs) {
+static inline int32_t syscall_read(syscall_regs_t regs) {
     int32_t fd   = regs.ebx;
     void *buf    = (void *)regs.ecx;
     uint32_t len = regs.edx;
@@ -453,7 +453,7 @@ int32_t syscall_read(syscall_regs_t regs) {
 }
 
 // Seek system call: update an open file's position 
-int32_t syscall_seek(syscall_regs_t regs) {
+static inline int32_t syscall_seek(syscall_regs_t regs) {
     int32_t fd            = regs.ebx;
     int32_t offset        = regs.ecx;
     whence_value_t whence = regs.edx;

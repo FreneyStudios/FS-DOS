@@ -24,8 +24,8 @@ typedef struct {
     uint32_t base;
 } __attribute__ ((packed)) idtr_32_t;
 
-idt_entry_32_t idt32[256];  // This is the actual IDT
-idtr_32_t idtr32;           // Interrupt descriptor table register instance
+extern idt_entry_32_t idt32[256];  // This is the actual IDT
+extern idtr_32_t idtr32;           // Interrupt descriptor table register instance
 
 // Interrupt "frame" to pass to interrupt handlers/ISRs
 typedef struct {
@@ -37,7 +37,7 @@ typedef struct {
 } __attribute__ ((packed)) int_frame_32_t;
 
 // Default exception handler (no error code)
-__attribute__ ((interrupt)) void default_excp_handler(int_frame_32_t *int_frame_32)
+__attribute__ ((interrupt)) static inline void default_excp_handler(int_frame_32_t *int_frame_32)
 {
     (void)int_frame_32; // Silence compiler warnings
 
@@ -46,7 +46,7 @@ __attribute__ ((interrupt)) void default_excp_handler(int_frame_32_t *int_frame_
 }
 
 // Default exception handler (includes error code)
-__attribute__ ((interrupt)) void default_excp_handler_err_code(int_frame_32_t *int_frame_32, uint32_t error_code)
+__attribute__ ((interrupt)) static inline void default_excp_handler_err_code(int_frame_32_t *int_frame_32, uint32_t error_code)
 {
     (void)int_frame_32; // Silence compiler warnings
                         
@@ -56,7 +56,7 @@ __attribute__ ((interrupt)) void default_excp_handler_err_code(int_frame_32_t *i
 }
 
 // Default interrupt handler
-__attribute__ ((interrupt)) void default_int_handler(int_frame_32_t *int_frame_32)
+__attribute__ ((interrupt)) static inline void default_int_handler(int_frame_32_t *int_frame_32)
 {
     (void)int_frame_32; // Silence compiler warnings
                         //
@@ -65,7 +65,7 @@ __attribute__ ((interrupt)) void default_int_handler(int_frame_32_t *int_frame_3
 }
 
 // Add an ISR to the IDT
-void set_idt_descriptor_32(uint8_t entry_number, void *isr, uint8_t flags)
+static inline void set_idt_descriptor_32(uint8_t entry_number, void *isr, uint8_t flags)
 {
     idt_entry_32_t *descriptor = &idt32[entry_number];
 
@@ -77,7 +77,7 @@ void set_idt_descriptor_32(uint8_t entry_number, void *isr, uint8_t flags)
 }
 
 // Setup/Initiize the IDT
-void init_idt_32(void)
+static inline void init_idt_32(void)
 {
     idtr32.limit = (uint16_t)(sizeof idt32); // Size should be 8 bytes * 256 descriptors (0-255) 
     idtr32.base  = (uint32_t)&idt32; 

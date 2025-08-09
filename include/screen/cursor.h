@@ -8,7 +8,7 @@
 
 #include "global/global_addresses.h"
 
-void move_cursor(uint16_t cursor_x, uint16_t cursor_y)
+static inline void move_cursor(uint16_t cursor_x, uint16_t cursor_y)
 {
     uint8_t *framebuffer    = (uint8_t *)gfx_mode->physical_base_pointer; 
     uint8_t bytes_per_pixel = (gfx_mode->bits_per_pixel+1) / 8;
@@ -55,7 +55,7 @@ void move_cursor(uint16_t cursor_x, uint16_t cursor_y)
     }
 }
 
-void remove_cursor(uint16_t cursor_x, uint16_t cursor_y)
+static inline void remove_cursor(uint16_t cursor_x, uint16_t cursor_y)
 {
     uint8_t *framebuffer    = (uint8_t *)gfx_mode->physical_base_pointer; 
     uint8_t bytes_per_pixel = (gfx_mode->bits_per_pixel+1) / 8;

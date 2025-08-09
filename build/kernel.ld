@@ -3,6 +3,7 @@ SECTIONS
     /* Higher half kernel - will run from 3GB+ addresses */
     .text 0xC0000000 :
     {
+        *(prekernel_entry);
         *(kernel_entry); 
         *(.text*);
     }

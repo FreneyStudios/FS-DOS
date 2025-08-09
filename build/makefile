@@ -1,6 +1,6 @@
 # Make variables
 CC = gcc
-#CC = clang
+AS = nasm
 
 # CFLAGS and EXE_CFLAGS setup
 CFLAGS = -std=c17 -m32 -march=i386 -mgeneral-regs-only -ffreestanding -fno-stack-protector \
@@ -14,99 +14,104 @@ EXE_CFLAGS = -std=c17 -m32 -march=i386 -mgeneral-regs-only -ffreestanding -fno-s
 SRCDIR = ../src/
 BINDIR = ../bin/
 FONTDIR = ../src/fonts/
-C_FILES != find $(SRCDIR) -maxdepth 1 -name "*.c" ! -name "calculator.c" ! -name "editor.c" -exec basename -s ".c" {} \;
-EXES = calculator editor
+
+# Kernel sources
+KRNL_C_SOURCES = kernel.c mouse.c 3rdstage.c globals.c gui/window.c
+KRNL_ASM_SOURCES = interrupts/irq_stubs.S
+KRNL_OBJS = $(patsubst %.c,$(BINDIR)%.o,$(KRNL_C_SOURCES)) $(patsubst %.S,$(BINDIR)%.o,$(KRNL_ASM_SOURCES))
+
+# Other C files (not part of the kernel)
+C_FILES =
+
+# Standalone executables
+EXES =
+
+# Bootloader assembly files
+ASM_FILES = 2ndstage bootSect ter-u16n ter-u18n ter-u32n testfont
+
+# Font files
 FONTS_BDF != find $(FONTDIR) -name "*.bdf" -exec basename -s ".bdf" {} \;
 
-# Make final OS.bin binary - padding out to full 1.44MB "floppy" img
-OS: $(FONTS_BDF) asm_files $(C_FILES) $(EXES)
+# Main target
+OS: $(FONTS_BDF) $(patsubst %,$(BINDIR)%.bin,$(ASM_FILES)) $(patsubst %,$(BINDIR)%.bin,$(C_FILES)) $(patsubst %,$(BINDIR)%.bin,$(EXES)) $(BINDIR)kernel.bin
 	@mkdir -p $(BINDIR)fs_root/sys/bin
-	@mv $(BINDIR)[!OS]*.bin $(BINDIR)fs_root/sys/bin
+	@mv $(BINDIR)bootSect.bin $(BINDIR)fs_root/sys/bin/bootSect.bin
+	@mv $(BINDIR)2ndstage.bin $(BINDIR)fs_root/sys/bin/2ndstage.bin
+	@mv $(BINDIR)kernel.bin $(BINDIR)fs_root/sys/bin/kernel.bin
 	@$(CC) ./make_disk.c -o ./make_disk.bin -I../include	
 	@./make_disk.bin
 
-# Assemble assembly source files into binary files,
-#   as fonts or other targets can make additional .asm files, need to process at runtime
-asm_files: 
-	@for file in `find $(SRCDIR) -maxdepth 1 -name "*.asm" -exec basename -s ".asm" {} \;`; do \
-		nasm -f bin -o $(BINDIR)$$file.bin $(SRCDIR)$$file.asm 1>/dev/null;\
-		size=$$(($$(wc -c < $(BINDIR)$$file.bin)));\
-		echo "$$file" "$$size ($$(printf '0x%02X' $$((size / 512))) sectors)";\
-	done
+# Rule to link the kernel
+$(BINDIR)kernel.bin: $(KRNL_OBJS)
+	@ld -melf_i386 -Tkernel.ld $(KRNL_OBJS) --oformat binary -o $(BINDIR)kernel.bin
+	@echo "kernel linked"
 
-# Compile C source files into PIE executable files, and pad out their size to next 512 byte sector 
-$(EXES):
-	@$(CC) -c $(EXE_CFLAGS) -o $@.o $(SRCDIR)$@.c
-	@ld -melf_i386 -e main -pie $@.o -o $(BINDIR)$@.bin
-	@rm -f $@.o
-	@size=$$(($$(wc -c < $(BINDIR)$@.bin)));\
-	newsize=$$((size - $$((size % 512)) + 512));\
-	echo "$@" "$$size ($$(printf '0x%02X' $$((size / 512))) sectors) ->" "$$newsize ($$(printf '0x%02X' $$((newsize / 512))) sectors)";\
-	dd if=/dev/zero of=$(BINDIR)$@.bin bs=1 seek=$$size count=$$((newsize - size)) status=none;
+# Rule to compile kernel C files
+$(BINDIR)%.o: $(SRCDIR)%.c
+	@mkdir -p $(@D)
+	@$(CC) -c $(CFLAGS) -o $@ $<
 
-# Compile C source files into binary files, and pad out their size to next 512 byte sector 
-$(C_FILES):
-	@$(CC) -c $(CFLAGS) -o $@.o $(SRCDIR)$@.c
-	@ld -melf_i386 -T$@.ld $@.o --oformat binary -o $(BINDIR)$@.bin
-	@rm -f $@.o
-	@size=$$(($$(wc -c < $(BINDIR)$@.bin)));\
-	newsize=$$((size - $$((size % 512)) + 512));\
-	echo "$@" "$$size ($$(printf '0x%02X' $$((size / 512))) sectors) ->" "$$newsize ($$(printf '0x%02X' $$((newsize / 512))) sectors)";\
-	dd if=/dev/zero of=$(BINDIR)$@.bin bs=1 seek=$$size count=$$((newsize - size)) status=none;
+# Rule to assemble kernel assembly files
+$(BINDIR)interrupts/irq_stubs.o: $(SRCDIR)interrupts/irq_stubs.S
+	@mkdir -p $(BINDIR)interrupts
+	@$(AS) -f elf32 -o $@ $<
 
-# Create the ISO file from OS.bin, renaming it to iso9660.bin for compatibility with genisoimage
+# Rule for other C files
+$(patsubst %,$(BINDIR)%.bin,$(C_FILES)): $(BINDIR)%.bin: $(SRCDIR)%.c
+	@mkdir -p $(BINDIR)
+	@$(CC) -c $(CFLAGS) -o $(BINDIR)$*.o $<
+	@ld -melf_i386 -T$*.ld $(BINDIR)$*.o --oformat binary -o $(BINDIR)$*.bin
+	@rm -f $(BINDIR)$*.o
+
+# Rule for standalone executables
+$(patsubst %,$(BINDIR)%.bin,$(EXES)): $(BINDIR)%.bin: $(SRCDIR)%.c
+	@mkdir -p $(BINDIR)
+	@$(CC) -c $(EXE_CFLAGS) -o $(BINDIR)$*.o $<
+	@ld -melf_i386 -e main -pie $(BINDIR)$*.o -o $(BINDIR)$*.bin
+	@rm -f $(BINDIR)$*.o
+
+# Rule for bootloader assembly files
+$(patsubst %,$(BINDIR)%.bin,$(ASM_FILES)): $(BINDIR)%.bin: $(SRCDIR)%.asm
+	@mkdir -p $(BINDIR)
+	@$(AS) -f bin -o $@ $<
+	@size=$$(($$(wc -c < $@)));\
+	echo "$*" "$$size ($$(printf '0x%02X' $$((size / 512))) sectors)";\
+
+# ISO generation and run targets remain the same
 iso: OS
 	@mkdir -p $(BINDIR)/iso/boot/grub
-	@mv $(BINDIR)/OS.bin $(BINDIR)/iso/boot/grub/iso9660.bin  # Rename OS.bin to iso9660.bin
+	@mv $(BINDIR)/OS.bin $(BINDIR)/iso/boot/grub/iso9660.bin
 	@echo "set timeout=0" > $(BINDIR)/iso/boot/grub/grub.cfg
 	@echo "set default=0" >> $(BINDIR)/iso/boot/grub/grub.cfg
 	@echo "menuentry \"FSDOS\" {" >> $(BINDIR)/iso/boot/grub/grub.cfg
-	@echo "    multiboot /boot/grub/iso9660.bin" >> $(BINDIR)/iso/boot/grub/grub.cfg  # Use iso9660.bin in grub.cfg
+	@echo "    multiboot /boot/grub/iso9660.bin" >> $(BINDIR)/iso/boot/grub/grub.cfg
 	@echo "    boot" >> $(BINDIR)/iso/boot/grub/grub.cfg
 	@echo "}" >> $(BINDIR)/iso/boot/grub/grub.cfg
-	# Copy GRUB boot image files
 	@mkdir -p $(BINDIR)/iso/boot/grub/i386-pc
 	@cp /usr/lib/grub/i386-pc/* $(BINDIR)/iso/boot/grub/i386-pc/
 	@genisoimage -R -b boot/grub/iso9660.bin -no-emul-boot -boot-load-size 4 -boot-info-table -o $(BINDIR)/FSDOS.iso $(BINDIR)/iso
 
-# Make the BIN image (this is essentially the same as the OS target)
 bin: OS
 	@echo "OS.bin has been created in $(BINDIR)"
 
-# Run OS directly through QEMU with the BIN file
 run_bin: bin
 	qemu-system-i386 \
-	-monitor stdio \
 	-m 512M \
 	-drive format=raw,file=$(BINDIR)/OS.bin,if=ide,index=0,media=disk \
-	-rtc base=localtime,clock=host,driftfix=slew \
-	-audiodev id=alsa,driver=alsa \
-	-machine pcspk-audiodev=alsa
-	#-enable-kvm \
+	-rtc base=localtime,clock=host,driftfix=slew
 
-# Launch OS through QEMU with the ISO
 run: iso
 	qemu-system-i386 \
-	-monitor stdio \
 	-m 512M \
 	-drive format=raw,file=$(BINDIR)/FSDOS.iso,if=ide,index=0,media=cdrom \
-	-rtc base=localtime,clock=host,driftfix=slew \
-	-audiodev id=alsa,driver=alsa \
-	-machine pcspk-audiodev=alsa
-	#-enable-kvm \
-
-# Launch OS through bochs
-bochs:
-	bochs -qf $(BINDIR).bochsrc
+	-rtc base=localtime,clock=host,driftfix=slew
 
 clean:
-	rm -f $(BINDIR)*.bin ./*.o $(BINDIR)/FSDOS.iso $(BINDIR)/iso -r
+	rm -rf $(BINDIR) ./*.o
 
-# Make program to convert fonts
 make_font_pgm:
 	@make -C $(FONTDIR) 1>/dev/null
 
-# Convert bdf fonts to OS asm font files
 $(FONTS_BDF): make_font_pgm
 	@$(FONTDIR)bdf_to_asm.bin $(FONTDIR)$@.bdf
 	@mv $(FONTDIR)$@.asm $(SRCDIR)

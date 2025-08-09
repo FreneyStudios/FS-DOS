@@ -79,21 +79,21 @@ typedef struct {
 
 } __attribute__ ((packed)) vbe_mode_info_t;
 
-vbe_mode_info_t *gfx_mode = (vbe_mode_info_t *)VBE_MODE_INFO_ADDRESS;
+extern vbe_mode_info_t *gfx_mode;
 
 typedef struct {
     uint32_t fg_color;
     uint32_t bg_color;
 } user_gfx_info_t;
 
-user_gfx_info_t *user_gfx_info = (user_gfx_info_t *)USER_GFX_INFO_ADDRESS;
+extern user_gfx_info_t *user_gfx_info;
 
 typedef struct point {
     uint16_t X, Y;
 } Point;
 
 // Draw a single pixel
-void draw_pixel(uint16_t X, uint16_t Y, uint32_t color)
+static inline void draw_pixel(uint16_t X, uint16_t Y, uint32_t color)
 {
     uint8_t *framebuffer    = (uint8_t *)gfx_mode->physical_base_pointer; 
     uint8_t bytes_per_pixel = (gfx_mode->bits_per_pixel+1) / 8;             // Get # of bytes per pixel, add 1 to fix 15bpp modes
@@ -106,7 +106,7 @@ void draw_pixel(uint16_t X, uint16_t Y, uint32_t color)
 
 // Draw a line
 //   Adapted from Wikipedia page on Bresenham's line algorithm
-void draw_line(Point start, Point end, uint32_t color)
+static inline void draw_line(Point start, Point end, uint32_t color)
 {
     int16_t deltaX = abs((end.X - start.X));    // Delta X, change in X values, positive absolute value
     int16_t deltaY = -abs((end.Y - start.Y));   // Delta Y, change in Y values, negative absolute value
@@ -132,7 +132,7 @@ void draw_line(Point start, Point end, uint32_t color)
 }
 
 // Draw a triangle
-void draw_triangle(Point vertex0, Point vertex1, Point vertex2, uint32_t color)
+static inline void draw_triangle(Point vertex0, Point vertex1, Point vertex2, uint32_t color)
 {
     // Draw lines between all 3 points
     draw_line(vertex0, vertex1, color);
@@ -141,7 +141,7 @@ void draw_triangle(Point vertex0, Point vertex1, Point vertex2, uint32_t color)
 }
 
 // Draw a rectangle
-void draw_rect(Point top_left, Point bottom_right, uint32_t color)
+static inline void draw_rect(Point top_left, Point bottom_right, uint32_t color)
 {
     Point temp = bottom_right;
     
@@ -163,7 +163,7 @@ void draw_rect(Point top_left, Point bottom_right, uint32_t color)
 }
 
 // Draw a polygon
-void draw_polygon(Point vertex_array[], uint8_t num_vertices, uint32_t color)
+static inline void draw_polygon(Point vertex_array[], uint8_t num_vertices, uint32_t color)
 {
     // Draw lines up to last line
     for (uint8_t i = 0; i < num_vertices - 1; i++)
@@ -175,7 +175,7 @@ void draw_polygon(Point vertex_array[], uint8_t num_vertices, uint32_t color)
 
 // Draw a circle
 //  Adapted from "Computer Graphics Principles and Practice in C 2nd Edition"
-void draw_circle(Point center, uint16_t radius, uint32_t color)
+static inline void draw_circle(Point center, uint16_t radius, uint32_t color)
 {
     int16_t x = 0;
     int16_t y = radius;
@@ -271,7 +271,7 @@ void draw_circle(Point center, uint16_t radius, uint32_t color)
 //}
 
 // Fill an area with a solid color
-void boundary_fill(uint16_t X, uint16_t Y, uint32_t fill_color, uint32_t boundary_color)
+static inline void boundary_fill(uint16_t X, uint16_t Y, uint32_t fill_color, uint32_t boundary_color)
 {
     // Recursive - may use a lot of stack space
     uint8_t *framebuffer    = (uint8_t *)gfx_mode->physical_base_pointer; 
@@ -303,7 +303,7 @@ void boundary_fill(uint16_t X, uint16_t Y, uint32_t fill_color, uint32_t boundar
 
 
 // Fill triangle with a solid color
-void fill_triangle_solid(Point p0, Point p1, Point p2, uint32_t color)
+static inline void fill_triangle_solid(Point p0, Point p1, Point p2, uint32_t color)
 {
     Point temp;
 
@@ -322,7 +322,7 @@ void fill_triangle_solid(Point p0, Point p1, Point p2, uint32_t color)
 }
 
 // Fill rectangle with a solid color
-void fill_rect_solid(Point top_left, Point bottom_right, uint32_t color)
+static inline void fill_rect_solid(Point top_left, Point bottom_right, uint32_t color)
 {
    // Brute force method 
    for (uint16_t y = top_left.Y; y < bottom_right.Y; y++)
@@ -331,7 +331,7 @@ void fill_rect_solid(Point top_left, Point bottom_right, uint32_t color)
 }
 
 // Fill a polygon with a solid color
-void fill_polygon_solid(Point vertex_array[], uint8_t num_vertices, uint32_t color)
+static inline void fill_polygon_solid(Point vertex_array[], uint8_t num_vertices, uint32_t color)
 {
     Point temp;
 
@@ -350,7 +350,7 @@ void fill_polygon_solid(Point vertex_array[], uint8_t num_vertices, uint32_t col
 }
 
 // Fill a circle with a solid color
-void fill_circle_solid(Point center, uint16_t radius, uint32_t color)
+static inline void fill_circle_solid(Point center, uint16_t radius, uint32_t color)
 {
     // Brute force method
     for (int16_t y = -radius; y <= radius; y++)
@@ -375,7 +375,7 @@ void fill_circle_solid(Point center, uint16_t radius, uint32_t color)
 
 // Convert given 32bit 888ARGB color to set bpp value 
 // 0x00RRGGBB
-uint32_t convert_color(const uint32_t color)
+static inline uint32_t convert_color(const uint32_t color)
 {
     uint8_t convert_r, convert_g, convert_b;
     uint32_t converted_color = 0;
